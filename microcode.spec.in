@@ -37,6 +37,7 @@ AMD CPU (AMD Phenom(TM), AMD Opteron(TM) and AMD Turion(TM) 64 Ultra).
 
 # build the microcode file from several old ones
 tar xvf %{SOURCE0}
+tar xvf %{SOURCE1}
 pushd intel-microcode-3.%{intel_date}.1
   make
   mkdir intel-ucode
