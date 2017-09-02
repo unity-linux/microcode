@@ -1,0 +1,65 @@
+# define intel and amd date once for reuse
+%define    intel_date @INTELVERSION@
+%define    amd_date @AMDVERSION@
+
+Summary:   Intel / AMD CPU Microcode
+Name:      microcode
+Version:   0.%{intel_date}
+Release:   @DISTREL@%{?dist}
+Group:     System/Kernel and hardware
+License:   Distributable
+# use the debian way to get microcodes for older CPUs as Intel removes old firmwares from recent releases
+Source0:   http://http.debian.net/debian/pool/non-free/i/intel-microcode/intel-microcode_3.%{intel_date}.1.tar.xz
+Source1:   http://http.debian.net/debian/pool/non-free/a/amd64-microcode/amd64-microcode_3.%{amd_date}.3.tar.xz
+Buildarch: noarch
+BuildRequires: iucode-tool
+BuildRequires: microcode_ctl
+# (tmb) conflict lock elision enabled glibc as it will crash
+Conflicts: glibc < 6:2.20-11
+
+%description
+Since PentiumPro, Intel CPU are made of a RISC chip and of a microcode whose
+purpose is to decompose "old" ia32 instruction into new risc ones.
+P6 familly is concerned: PPro, PII, Celeron, PIII, Celeron2.
+Recent kernels have the ability to update this microcode.
+
+The microcode update is volatile and needs to be uploaded on each system
+boot. I.e. it doesn't reflash your cpu permanently.
+Reboot and it reverts back to the old microcode.
+
+This package contains microcode for Intel CPU, as well as microcode for 
+AMD CPU (AMD Phenom(TM), AMD Opteron(TM) and AMD Turion(TM) 64 Ultra).
+
+%prep
+%setup -q -T -c
+
+%build
+
+# build the microcode file from several old ones
+tar xvf %{SOURCE0}
+pushd intel-microcode-3.%{intel_date}.1
+  make
+  mkdir intel-ucode
+  /sbin/iucode_tool -Kintel-ucode intel-microcode.bin
+popd
+
+%install
+rm -rf %{buildroot}
+
+mkdir -p %{buildroot}/lib/firmware/intel-ucode
+pushd intel-microcode-3.%{intel_date}.1
+install -m 644 intel-ucode/* %{buildroot}/lib/firmware/intel-ucode
+popd
+
+mkdir -p %{buildroot}/lib/firmware/amd-ucode
+pushd amd64-microcode-3.%{amd_date}.3
+install -m 644 microcode_amd*.bin %{buildroot}/lib/firmware/amd-ucode
+install -m 644 microcode_amd*.asc %{buildroot}/lib/firmware/amd-ucode
+popd
+
+%clean
+
+%files
+%defattr(-,root,root,-)
+/lib/firmware/amd-ucode/
+/lib/firmware/intel-ucode/
